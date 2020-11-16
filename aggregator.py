@@ -50,10 +50,10 @@ class LocalAggregator(nn.Module):
         e_3 = self.leakyrelu(e_3).squeeze(-1).view(batch_size, N, N)
 
         mask = -9e15 * torch.ones_like(e_0)
-        alpha = torch.where(adj > 0, e_0, mask)
-        alpha = torch.where(adj > 1, e_1, alpha)
-        alpha = torch.where(adj > 2, e_2, alpha)
-        alpha = torch.where(adj > 3, e_3, alpha)
+        alpha = torch.where(adj.eq(1), e_0, mask)
+        alpha = torch.where(adj.eq(2), e_1, alpha)
+        alpha = torch.where(adj.eq(3), e_2, alpha)
+        alpha = torch.where(adj.eq(4), e_3, alpha)
         alpha = torch.softmax(alpha, dim=-1)
 
         output = torch.matmul(alpha, h)
@@ -82,7 +82,7 @@ class GlobalAggregator(nn.Module):
             neighbor_vector = torch.sum(alpha * neighbor_vector, dim=-2)
         else:
             neighbor_vector = torch.mean(neighbor_vector, dim=2)
-
+        # self_vectors = F.dropout(self_vectors, 0.5, training=self.training)
         output = torch.cat([self_vectors, neighbor_vector], -1)
         output = F.dropout(output, self.dropout, training=self.training)
         output = torch.matmul(output, self.w_3)

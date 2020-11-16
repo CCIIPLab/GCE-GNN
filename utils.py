@@ -19,11 +19,16 @@ def split_validation(train_set, valid_portion):
 
 def handle_data(inputData, train_len=None):
     len_data = [len(nowData) for nowData in inputData]
-    max_len = max(len_data)
+    if train_len is None:
+        max_len = max(len_data)
+    else:
+        max_len = train_len
     # reverse the sequence
-    data = [list(reversed(nowData)) + [0] * (max_len - le) for nowData, le in zip(inputData, len_data)]
-    mask = [[1] * le + [0] * (max_len - le) for le in len_data]
-    return data, mask, max_len
+    us_pois = [list(reversed(upois)) + [0] * (max_len - le) if le < max_len else list(reversed(upois[-max_len:]))
+               for upois, le in zip(inputData, len_data)]
+    us_msks = [[1] * le + [0] * (max_len - le) if le < max_len else [1] * max_len
+               for le in len_data]
+    return us_pois, us_msks, max_len
 
 
 def handle_adj(adj_dict, n_entity, sample_num, num_dict=None):
@@ -67,15 +72,16 @@ class Data(Dataset):
             if u_input[i + 1] == 0:
                 break
             v = np.where(node == u_input[i + 1])[0][0]
+            if u == v or adj[u][v] == 4:
+                continue
+            adj[v][v] = 1
             if adj[v][u] == 2:
                 adj[u][v] = 4
-            else:
-                adj[u][v] = 2
-            if adj[u][v] == 3:
                 adj[v][u] = 4
             else:
+                adj[u][v] = 2
                 adj[v][u] = 3
-            adj[v][v] = 1
+
         alias_inputs = [np.where(node == i)[0][0] for i in u_input]
 
         return [torch.tensor(alias_inputs), torch.tensor(adj), torch.tensor(items),
