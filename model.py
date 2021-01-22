@@ -111,7 +111,14 @@ class CombineGraph(Module):
 
         session_info = []
         item_emb = self.embedding(item) * mask_item.float().unsqueeze(-1)
-        sum_item_emb = torch.sum(item_emb, 1).unsqueeze(-2)
+        
+        # mean 
+        sum_item_emb = torch.sum(item_emb, 1) / torch.sum(mask_item.float(), -1).unsqueeze(-1)
+        
+        # sum
+        # sum_item_emb = torch.sum(item_emb, 1)
+        
+        sum_item_emb = sum_item_emb.unsqueeze(-2)
         for i in range(self.hop):
             session_info.append(sum_item_emb.repeat(1, entity_vectors[i].shape[1], 1))
 
